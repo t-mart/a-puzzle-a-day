@@ -2,28 +2,33 @@
 #![feature(once_cell)]
 
 mod piece;
+mod placement;
 mod solver;
 
 use clap::{App, Arg};
-use piece::BOARD_LABELS;
-use solver::solve;
+use piece::Piece;
+use solver::{solve, solve_threaded};
+use placement::get_placements;
 
 fn main() {
+    // for placement in get_placements(&Piece::playing_pieces()[0]) {
+    //     println!("{}\n", placement);
+    // }
     let matches = App::new("A-Puzzle-A-Day Solver")
         .about("Generates solutions for A-Puzzle-A-Day, a wooden combination puzzle")
         .arg(
             Arg::new("OPEN_SQUARE")
                 .takes_value(true)
                 .max_values(2)
-                .possible_values(BOARD_LABELS.keys().into_iter().collect::<Vec<&&str>>())
+                .possible_values(Piece::get_labels())
                 .help(
                     "The label of a square of the board to fix open in generated \
-                    solutions. 0, 1 or 2 may be given. Each square not given will \
-                    be considered a wildcard. Examples are \"apr\" or \"23\". To \
-                    find all solutions, do not give any values to this argument.",
+                    solutions. Up to 2 labels may be given. Each label not given will \
+                    be considered a wildcard. (To find all solutions, do not provide \
+                    this argument.)",
                 ),
         )
         .get_matches();
 
-    solve(matches.values_of("OPEN_SQUARE"));
+    solve_threaded(matches.values_of("OPEN_SQUARE"));
 }

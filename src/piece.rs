@@ -1,59 +1,21 @@
-use std::collections::{HashMap, HashSet};
 use std::fmt;
-use std::lazy::SyncLazy;
 use std::ops::{Add, Index, IndexMut};
-
-pub static BOARD_LABELS: SyncLazy<HashMap<&str, (usize, usize)>> = SyncLazy::new(|| {
-    HashMap::from([
-        ("jan", (0, 0)),
-        ("feb", (0, 1)),
-        ("mar", (0, 2)),
-        ("apr", (0, 3)),
-        ("may", (0, 4)),
-        ("jun", (0, 5)),
-        ("jul", (1, 0)),
-        ("aug", (1, 1)),
-        ("sep", (1, 2)),
-        ("oct", (1, 3)),
-        ("nov", (1, 4)),
-        ("dec", (1, 5)),
-        ("1", (2, 0)),
-        ("2", (2, 1)),
-        ("3", (2, 2)),
-        ("4", (2, 3)),
-        ("5", (2, 4)),
-        ("6", (2, 5)),
-        ("7", (2, 6)),
-        ("8", (3, 0)),
-        ("9", (3, 1)),
-        ("10", (3, 2)),
-        ("11", (3, 3)),
-        ("12", (3, 4)),
-        ("13", (3, 5)),
-        ("14", (3, 6)),
-        ("15", (4, 0)),
-        ("16", (4, 1)),
-        ("17", (4, 2)),
-        ("18", (4, 3)),
-        ("19", (4, 4)),
-        ("20", (4, 5)),
-        ("21", (4, 6)),
-        ("22", (5, 0)),
-        ("23", (5, 1)),
-        ("24", (5, 2)),
-        ("25", (5, 3)),
-        ("26", (5, 4)),
-        ("27", (5, 5)),
-        ("28", (5, 6)),
-        ("29", (6, 0)),
-        ("30", (6, 1)),
-        ("31", (6, 2)),
-    ])
-});
 
 const FILLED_SQUARE_CHAR: &str = "█";
 const OPEN_SQUARE_CHAR: &str = "░";
-const PIECE_SIZE: usize = 7;
+const INVALID_BOARD_LABEL: &str = "?";
+pub const PIECE_SIZE: usize = 7;
+
+#[rustfmt::skip]
+const BOARD_LABELS: [[&str; PIECE_SIZE]; PIECE_SIZE] = [
+    ["jan", "feb", "mar", "apr", "may", "jun", INVALID_BOARD_LABEL,],
+    ["jul", "aug", "sep", "oct", "nov", "dec", INVALID_BOARD_LABEL,],
+    ["1", "2", "3", "4", "5", "6", "7",],
+    ["8", "9", "10", "11", "12", "13", "14",],
+    ["15", "16", "17", "18", "19", "20", "21",],
+    ["22", "23", "24", "25", "26", "27", "28",],
+    ["29", "30", "31", INVALID_BOARD_LABEL, INVALID_BOARD_LABEL, INVALID_BOARD_LABEL, INVALID_BOARD_LABEL,],
+];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Piece {
@@ -211,16 +173,45 @@ impl Piece {
         ]
     }
 
-    pub fn coord_for(label: &str) -> Option<&(usize, usize)> {
-        BOARD_LABELS.get(label)
+    /// Returns an Iterator of items like `((row_idx, col_idx), label)`
+    ///
+    /// For example, `((0, 3), "apr")`
+    fn get_label_coords<'a>() -> impl Iterator<Item = ((usize, usize), &'a str)> {
+        BOARD_LABELS
+            .into_iter()
+            .enumerate()
+            .flat_map(|(row_idx, row)| {
+                row.into_iter()
+                    .enumerate()
+                    .map(|(col_idx, label)| ((row_idx, col_idx), label))
+                    .collect::<Vec<_>>()
+            })
+            .filter(|(_, label)| !INVALID_BOARD_LABEL.eq(*label))
     }
 
-    fn col(&self, idx: usize) -> [u8; PIECE_SIZE] {
+    pub fn get_labels<'a>() -> impl Iterator<Item = &'a str> {
+        Piece::get_label_coords().map(|(_, label)| label)
+    }
+
+    fn coord_for(label: &str) -> Option<(usize, usize)> {
+        Piece::get_label_coords()
+            .find(|(_, item_label)| item_label.eq(&label))
+            .map(|(coord, _)| coord)
+    }
+
+    pub fn mark_coord_for(&mut self, label: &str) {
+        let coord = Piece::coord_for(label);
+        if let Some((row_idx, col_idx)) = coord {
+            self[row_idx][col_idx] = 1;
+        }
+    }
+
+    pub fn col(&self, idx: usize) -> [u8; PIECE_SIZE] {
         self.data.map(|row| row[idx])
     }
 
-    fn transpose(&self) -> Piece {
-        Piece::from([
+    fn transpose(&mut self) {
+        self.data = [
             self.col(0),
             self.col(1),
             self.col(2),
@@ -228,39 +219,60 @@ impl Piece {
             self.col(4),
             self.col(5),
             self.col(6),
-        ])
+        ];
     }
 
-    fn flip_updown(&self) -> Piece {
-        Piece::from([
+    pub fn flip_updown(&mut self) {
+        self.data = [
             self[6], self[5], self[4], self[3], self[2], self[1], self[0],
-        ])
+        ];
     }
 
-    fn rotate90(&self) -> Piece {
-        self.flip_updown().transpose()
+    pub fn rotate90(&mut self) {
+        self.flip_updown();
+        self.transpose();
     }
 
-    fn roll_left(&self) -> Piece {
-        let t = self.transpose();
-        Piece::from([t[1], t[2], t[3], t[4], t[5], t[6], t[0]]).transpose()
+    fn roll_left(&mut self) {
+        self.transpose();
+        self.roll_up();
+        self.transpose();
     }
 
-    fn roll_right(&self) -> Piece {
-        let t = self.transpose();
-        Piece::from([t[6], t[0], t[1], t[2], t[3], t[4], t[5]]).transpose()
+    pub fn roll_right(&mut self) {
+        self.transpose();
+        self.roll_down();
+        self.transpose();
     }
 
-    fn roll_up(&self) -> Piece {
-        Piece::from([
+    fn roll_up(&mut self) {
+        self.data = [
             self[1], self[2], self[3], self[4], self[5], self[6], self[0],
-        ])
+        ];
     }
 
-    fn roll_down(&self) -> Piece {
-        Piece::from([
+    pub fn roll_down(&mut self) {
+        self.data = [
             self[6], self[0], self[1], self[2], self[3], self[4], self[5],
-        ])
+        ];
+    }
+
+    pub fn shove_left_up(&mut self) {
+        for _ in 0..PIECE_SIZE {
+            if self[0].iter().sum::<u8>() == 0 {
+                self.roll_up()
+            } else {
+                break;
+            }
+        }
+
+        for _ in 0..PIECE_SIZE {
+            if self.col(0).iter().sum::<u8>() == 0 {
+                self.roll_left()
+            } else {
+                break;
+            }
+        }
     }
 
     pub fn is_flat(&self) -> bool {
@@ -272,89 +284,5 @@ impl Piece {
             }
         }
         return true;
-    }
-
-    fn shove_left_up(&self) -> Piece {
-        let mut tmp = self.clone();
-
-        for _ in 0..PIECE_SIZE {
-            if tmp[0].iter().sum::<u8>() == 0 {
-                tmp = tmp.roll_up()
-            } else {
-                break;
-            }
-        }
-
-        for _ in 0..PIECE_SIZE {
-            if tmp.col(0).iter().sum::<u8>() == 0 {
-                tmp = tmp.roll_left()
-            } else {
-                break;
-            }
-        }
-
-        tmp
-    }
-
-    /// Return a Vec of all Pieces that occur if the piece was only rotated and/or flipped.
-    /// The piece is shoved up and to the left each time. No duplicates are in the Vec.
-    fn get_orientations(&self) -> Vec<Piece> {
-        let mut orientations = HashSet::new();
-        let mut tmp = self.clone();
-
-        orientations.insert(tmp);
-
-        for _ in 0..3 {
-            tmp = tmp.rotate90().shove_left_up();
-            orientations.insert(tmp);
-        }
-
-        tmp = tmp.flip_updown().shove_left_up();
-        orientations.insert(tmp);
-
-        for _ in 0..3 {
-            tmp = tmp.rotate90().shove_left_up();
-            orientations.insert(tmp);
-        }
-
-        orientations.into_iter().collect()
-    }
-
-    /// Return a Vec of all Pieces that could occur if the piece was shifted around the board
-    /// without rotations or flips
-    fn get_shifts(&self) -> Vec<Piece> {
-        let mut placements = Vec::new();
-        let mut first_clear_col = PIECE_SIZE - 1;
-        let mut first_clear_row = PIECE_SIZE - 1;
-        let shoved = self.clone().shove_left_up();
-
-        while shoved.col(first_clear_col).iter().sum::<u8>() == 0 {
-            first_clear_col -= 1;
-        }
-
-        while shoved[first_clear_row].iter().sum::<u8>() == 0 {
-            first_clear_row -= 1;
-        }
-
-        for row_offset in 0..(PIECE_SIZE - first_clear_row) {
-            let mut tmp = shoved.clone();
-            for _ in 0..row_offset {
-                tmp = tmp.roll_down();
-            }
-            for _ in 0..(PIECE_SIZE - first_clear_col) {
-                placements.push(tmp);
-                tmp = tmp.roll_right();
-            }
-        }
-
-        placements
-    }
-
-    /// Return a Vec of this Piece in all its orientations (flips/rotations) and shifts
-    pub fn get_placements(&self) -> Vec<Piece> {
-        self.get_orientations()
-            .into_iter()
-            .flat_map(|orientation| orientation.get_shifts())
-            .collect()
     }
 }
