@@ -1,4 +1,5 @@
 use colored::Colorize;
+use std::collections::BinaryHeap;
 use std::fmt;
 use std::ops::{Add, Index, IndexMut};
 
@@ -296,16 +297,35 @@ impl Piece {
         }
         return true;
     }
+
+    // encode this piece into a number. NOTE: all square values
+    // will be clamped to [0, 1].
+    pub fn encode(&self) -> u64 {
+        let mut val = 0u64;
+        for row in self.data {
+            for item in row {
+                val <<= 1;
+                match item {
+                    0 => {}
+                    _ => val += 1u64,
+                }
+            }
+        }
+        val
+    }
 }
 
 /// tries to print at most 8 pieces together
-pub fn print_solution(pieces: Vec<Piece>) {
+///
+/// TODO: this could be fmt::Display implementation on
+/// some custom struct i think?
+pub fn print_solution(pieces: &Vec<Piece>) {
     // build a board array of strings. real squares are white, others are hidden
     // (later, only the open squares of the solution will be white. everything
     // else will be overwritten)
     let mut board = Piece::starting_board().data.map(|row| {
         row.map(|col| match col {
-            0 => OPEN_SQUARE_CHAR.white(),
+            0 => FILLED_SQUARE_CHAR.white(),
             _ => "".normal(),
         })
     });
@@ -343,7 +363,22 @@ pub fn print_solution(pieces: Vec<Piece>) {
         .collect::<Vec<_>>()
         .join("\n");
 
-    // print it. TODO: this could be fmt::Display implementation on
-    // some custom struct i think?
+    // print it.
     println!("{}\n", s);
+}
+
+/// generates an reproducible identifier for a solution
+/// e.g.: 1c30000000000-387000000000-708100000-6083000-f1000000-604180-78200-c70
+///
+/// TODO: this looks awful. come up with better idea
+/// TODO: this could be some trait
+pub fn encode_solution(pieces: &Vec<Piece>) -> String {
+    pieces
+        .iter()
+        .map(|piece| piece.encode())
+        .collect::<BinaryHeap<_>>()
+        .into_iter()
+        .map(|code| format!("{:x}", code))
+        .collect::<Vec<_>>()
+        .join("-")
 }

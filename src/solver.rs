@@ -48,11 +48,11 @@ pub fn solve_threaded<'a>(open_square_labels_opt: Option<impl IntoIterator<Item 
         .par_iter()
         .map(|(partial_pieces, partial_board)| {
             let thread_solutions_found_mutex = Arc::clone(&solutions_found_mutex);
-            let mut callback = move |pieces, _| {
+            let mut callback = move |pieces: Vec<Piece>, _| {
                 let mut solutions_found = thread_solutions_found_mutex.lock().unwrap();
                 *solutions_found += 1;
                 println!("{}", *solutions_found);
-                print_solution(pieces);
+                print_solution(&pieces);
             };
 
             _solve(
@@ -62,7 +62,8 @@ pub fn solve_threaded<'a>(open_square_labels_opt: Option<impl IntoIterator<Item 
                 &mut callback,
                 None,
             )
-        }).for_each(|()| {}); // rayon won't start the work until there's something that consumes it.
+        })
+        .for_each(|()| {}); // rayon won't start the work until there's something that consumes it.
 }
 
 fn _solve(
