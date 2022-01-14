@@ -1,42 +1,7 @@
 use crate::piece::{print_solution, Piece};
 use crate::placement::get_placements;
-use std::sync::{Arc, Mutex};
-use std::thread;
 use rayon::prelude::*;
-
-// pub fn solve<'a, I>(open_square_labels_opt: Option<I>)
-// where
-//     I: IntoIterator<Item = &'a str>,
-// {
-//     let mut starting_board = Piece::starting_board();
-//     if let Some(open_square_labels) = open_square_labels_opt {
-//         for open_square_label in open_square_labels {
-//             starting_board.mark_coord_for(open_square_label)
-//         }
-//     }
-//     println!("{}", starting_board);
-
-//     let placements: Vec<Vec<Piece>> = Piece::playing_pieces()
-//         .into_iter()
-//         .map(|piece| get_placements(&piece))
-//         .collect();
-
-//     let mut count = 0;
-
-//     let mut solution_callback = |solution_and_board_| {
-//         count += 1;
-//         println!("found a solution #{}", count);
-//     };
-
-//     _solve(
-//         Vec::new(),
-//         starting_board,
-//         placements,
-//         &mut solution_callback,
-//     );
-
-//     // println!("{:?}", placements);
-// }
+use std::sync::{Arc, Mutex};
 
 fn build_starting_board_with_opens<'a>(
     open_square_labels_opt: Option<impl IntoIterator<Item = &'a str>>,
@@ -60,49 +25,44 @@ fn build_piece_placements() -> Vec<Vec<Piece>> {
 pub fn solve_threaded<'a>(open_square_labels_opt: Option<impl IntoIterator<Item = &'a str>>) {
     let starting_board = build_starting_board_with_opens(open_square_labels_opt);
 
-    let piece_placements = Arc::new(build_piece_placements());
+    let piece_placements = build_piece_placements();
 
     let mut partial_solutions = Vec::new();
     let mut partial_callback = |pieces, board| {
         partial_solutions.push((pieces, board));
     };
-    let partial_piece_placements = Arc::clone(&piece_placements);
-    // let partial_piece_placements = build_piece_placements();
 
+    // first do a partial solve, placing the first piece in all its placements
+    // then we will have partial solutions to iterate over with threads/rayon
     _solve(
         Vec::new(),
         starting_board,
-        &partial_piece_placements,
+        &piece_placements,
         &mut partial_callback,
         Some(1),
     );
 
-    let mut threads = Vec::new();
     let solutions_found_mutex = Arc::new(Mutex::new(0));
 
-    for (partial_pieces, partial_board) in partial_solutions {
-        let thread_piece_placements = Arc::clone(&piece_placements);
-        let thread_solutions_found_mutex = Arc::clone(&solutions_found_mutex);
-        let mut callback = move |pieces, _| {
-            *thread_solutions_found_mutex.lock().unwrap() += 1;
-            println!("{}", *thread_solutions_found_mutex.lock().unwrap());
-            print_solution(pieces);
-        };
+    partial_solutions
+        .par_iter()
+        .map(|(partial_pieces, partial_board)| {
+            let thread_solutions_found_mutex = Arc::clone(&solutions_found_mutex);
+            let mut callback = move |pieces, _| {
+                let mut solutions_found = thread_solutions_found_mutex.lock().unwrap();
+                *solutions_found += 1;
+                println!("{}", *solutions_found);
+                print_solution(pieces);
+            };
 
-        threads.push(thread::spawn(move || {
             _solve(
-                partial_pieces,
-                partial_board,
-                &thread_piece_placements,
+                partial_pieces.to_vec(),
+                *partial_board,
+                &piece_placements,
                 &mut callback,
                 None,
-            );
-        }));
-    }
-
-    for thread in threads {
-        thread.join().unwrap();
-    }
+            )
+        }).for_each(|()| {}); // rayon won't start the work until there's something that consumes it.
 }
 
 fn _solve(
