@@ -6,6 +6,16 @@ const FILLED_SQUARE_CHAR: &str = "█";
 const OPEN_SQUARE_CHAR: &str = "░";
 const INVALID_BOARD_LABEL: &str = "?";
 pub const PIECE_SIZE: usize = 7;
+const COLORS: [(u8, u8, u8); 8] = [
+    (31, 119, 180),  // blue
+    (255, 127, 14),  // orange
+    (44, 160, 44),   // green
+    (214, 39, 40),   // red
+    (148, 103, 189), // purple
+    (227, 119, 194), // pink
+    (188, 189, 34),  // yellow
+    (23, 190, 207),  // cyan
+];
 
 #[rustfmt::skip]
 const BOARD_LABELS: [[&str; PIECE_SIZE]; PIECE_SIZE] = [
@@ -290,17 +300,9 @@ impl Piece {
 
 /// tries to print at most 8 pieces together
 pub fn print_solution(pieces: Vec<&Piece>) {
-    let colors = [
-        (31, 119, 180),  // blue
-        (255, 127, 14),  // orange
-        (44, 160, 44),   // green
-        (214, 39, 40),   // red
-        (148, 103, 189), // purple
-        (227, 119, 194), // pink
-        (188, 189, 34),  // yellow
-        (23, 190, 207),  // cyan
-    ];
-
+    // build a board array of strings. real squares are white, others are hidden
+    // (later, only the open squares of the solution will be white. everything
+    // else will be overwritten)
     let mut board = Piece::starting_board().data.map(|row| {
         row.map(|col| match col {
             0 => OPEN_SQUARE_CHAR.white(),
@@ -308,8 +310,9 @@ pub fn print_solution(pieces: Vec<&Piece>) {
         })
     });
 
-    for (piece, (r, g, b)) in pieces.into_iter().zip(colors) {
-        let ons = piece
+    for (piece, (r, g, b)) in pieces.into_iter().zip(COLORS) {
+        // update the board for each (piece, color) pair
+        piece
             .data
             .into_iter()
             .enumerate()
@@ -323,12 +326,12 @@ pub fn print_solution(pieces: Vec<&Piece>) {
                 1 => Some(coords),
                 _ => None,
             })
-            .collect::<Vec<_>>();
-        for (row_idx, col_idx) in ons {
-            board[row_idx][col_idx] = FILLED_SQUARE_CHAR.truecolor(r, g, b);
-        }
+            .for_each(|(row_idx, col_idx)| {
+                board[row_idx][col_idx] = FILLED_SQUARE_CHAR.truecolor(r, g, b)
+            });
     }
 
+    // build a string out of board
     let s = board
         .into_iter()
         .map(|row| {
@@ -340,5 +343,7 @@ pub fn print_solution(pieces: Vec<&Piece>) {
         .collect::<Vec<_>>()
         .join("\n");
 
+    // print it. TODO: this could be fmt::Display implementation on
+    // some custom struct i think?
     println!("{}\n", s);
 }
