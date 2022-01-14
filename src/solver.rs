@@ -2,6 +2,7 @@ use crate::piece::{print_solution, Piece};
 use crate::placement::get_placements;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use rayon::prelude::*;
 
 // pub fn solve<'a, I>(open_square_labels_opt: Option<I>)
 // where
@@ -77,22 +78,21 @@ pub fn solve_threaded<'a>(open_square_labels_opt: Option<impl IntoIterator<Item 
     );
 
     let mut threads = Vec::new();
+    let solutions_found_mutex = Arc::new(Mutex::new(0));
 
     for (partial_pieces, partial_board) in partial_solutions {
         let thread_piece_placements = Arc::clone(&piece_placements);
-        let mut partial_pieces3 = Vec::new();
-        for p in partial_pieces {
-            partial_pieces3.push(p);
-        }
-        let partial_board2 = partial_board.clone();
-        // let mut solution_count = 0;
-        let mut callback = |pieces, _| {
+        let thread_solutions_found_mutex = Arc::clone(&solutions_found_mutex);
+        let mut callback = move |pieces, _| {
+            *thread_solutions_found_mutex.lock().unwrap() += 1;
+            println!("{}", *thread_solutions_found_mutex.lock().unwrap());
             print_solution(pieces);
         };
+
         threads.push(thread::spawn(move || {
             _solve(
-                partial_pieces3,
-                partial_board2,
+                partial_pieces,
+                partial_board,
                 &thread_piece_placements,
                 &mut callback,
                 None,

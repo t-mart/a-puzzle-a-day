@@ -9,6 +9,7 @@ use piece::Piece;
 use solver::solve_threaded;
 
 const OPEN_LABEL: &str = "OPEN_LABEL";
+const N_THREADS: &str = "n-threads";
 
 fn main() {
     let matches = App::new("A-Puzzle-A-Day Solver")
@@ -25,6 +26,9 @@ fn main() {
                     this argument.)",
                 ),
         )
+        // .arg(
+        //     Arg::new(N_THREADS)
+        // )
         .get_matches();
 
     solve_threaded(matches.values_of(OPEN_LABEL));
