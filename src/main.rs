@@ -7,17 +7,15 @@ mod solver;
 
 use clap::{App, Arg};
 use piece::Piece;
-use solver::{solve, solve_threaded};
-use placement::get_placements;
+use solver::solve_threaded;
+
+const OPEN_LABEL: &str = "OPEN_LABEL";
 
 fn main() {
-    // for placement in get_placements(&Piece::playing_pieces()[0]) {
-    //     println!("{}\n", placement);
-    // }
     let matches = App::new("A-Puzzle-A-Day Solver")
         .about("Generates solutions for A-Puzzle-A-Day, a wooden combination puzzle")
         .arg(
-            Arg::new("OPEN_SQUARE")
+            Arg::new(OPEN_LABEL)
                 .takes_value(true)
                 .max_values(2)
                 .possible_values(Piece::get_labels())
@@ -30,5 +28,5 @@ fn main() {
         )
         .get_matches();
 
-    solve_threaded(matches.values_of("OPEN_SQUARE"));
+    solve_threaded(matches.values_of(OPEN_LABEL));
 }

@@ -4,26 +4,26 @@ use std::collections::HashSet;
 
 /// Return a Vec of all Pieces that occur if the piece was only rotated and/or flipped.
 /// The piece is shoved up and to the left each time. No duplicates are in the Vec.
-fn get_orientations(piece: &Piece) -> Vec<Piece> {
+pub fn get_orientations(piece: &Piece) -> Vec<Piece> {
     let mut orientations = HashSet::new();
-    let mut tmp = piece.clone();
+    let mut tmp = *piece;
 
     orientations.insert(tmp);
 
     for _ in 0..3 {
         tmp.rotate90();
         tmp.shove_left_up();
-        orientations.insert(tmp.clone());
+        orientations.insert(tmp);
     }
 
     tmp.flip_updown();
     tmp.shove_left_up();
-    orientations.insert(tmp.clone());
+    orientations.insert(tmp);
 
     for _ in 0..3 {
         tmp.rotate90();
         tmp.shove_left_up();
-        orientations.insert(tmp.clone());
+        orientations.insert(tmp);
     }
 
     orientations.into_iter().collect()
@@ -31,11 +31,11 @@ fn get_orientations(piece: &Piece) -> Vec<Piece> {
 
 /// Return a Vec of all Pieces that could occur if the piece was shifted around the board
 /// without rotations or flips
-fn get_shifts(piece: &Piece) -> Vec<Piece> {
+pub fn get_shifts(piece: &Piece) -> Vec<Piece> {
     let mut placements = Vec::new();
     let mut first_clear_col = PIECE_SIZE - 1;
     let mut first_clear_row = PIECE_SIZE - 1;
-    let mut tmp_row_offsetted = piece.clone();
+    let mut tmp_row_offsetted = *piece;
 
     while piece.col(first_clear_col).iter().sum::<u8>() == 0 {
         first_clear_col -= 1;
@@ -46,9 +46,9 @@ fn get_shifts(piece: &Piece) -> Vec<Piece> {
     }
 
     for _ in 0..(PIECE_SIZE - first_clear_row) {
-        let mut tmp_col_offsetted = tmp_row_offsetted.clone();
+        let mut tmp_col_offsetted = tmp_row_offsetted;
         for _ in 0..(PIECE_SIZE - first_clear_col) {
-            placements.push(tmp_col_offsetted.clone());
+            placements.push(tmp_col_offsetted);
             tmp_col_offsetted.roll_right();
         }
         tmp_row_offsetted.roll_down()

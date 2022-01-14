@@ -1,3 +1,4 @@
+use colored::{ColoredString, Colorize};
 use std::fmt;
 use std::ops::{Add, Index, IndexMut};
 
@@ -58,7 +59,7 @@ impl fmt::Display for Piece {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{}",
+            "{}\n",
             self.data
                 .into_iter()
                 .map(|row| row
@@ -285,4 +286,56 @@ impl Piece {
         }
         return true;
     }
+}
+
+pub fn print_solution(pieces: Vec<&Piece>) {
+    let colors = [
+        (31, 119, 180),  // blue
+        (255, 127, 14),  // orange
+        (44, 160, 44),   // green
+        (214, 39, 40),   // red
+        (148, 103, 189), // purple
+        (227, 119, 194), // pink
+        (188, 189, 34),  // yellow
+        (23, 190, 207),  // cyan
+    ];
+
+    let mut board = Piece::starting_board().data.map(|row| {
+        row.map(|col| match col {
+            0 => OPEN_SQUARE_CHAR.white(),
+            _ => "".normal(),
+        })
+    });
+
+    for (piece, (r, g, b)) in pieces.into_iter().zip(colors) {
+        let ons = piece
+            .data
+            .into_iter()
+            .enumerate()
+            .flat_map(|(row_idx, row)| {
+                row.into_iter()
+                    .enumerate()
+                    .map(|(col_idx, item)| ((row_idx, col_idx), item))
+                    .collect::<Vec<_>>()
+            })
+            .filter(|(_, item)| item.eq(&1))
+            .map(|(coords, _)| coords)
+            .collect::<Vec<_>>();
+        for (row_idx, col_idx) in ons {
+            board[row_idx][col_idx] = FILLED_SQUARE_CHAR.truecolor(r, g, b);
+        }
+    }
+
+    let s = board
+        .into_iter()
+        .map(|row| {
+            row.into_iter()
+                .map(|cs| cs.to_string())
+                .collect::<Vec<_>>()
+                .join("")
+        })
+        .collect::<Vec<String>>()
+        .join("\n");
+
+    println!("{}\n", s);
 }
