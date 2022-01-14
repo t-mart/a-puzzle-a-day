@@ -1,5 +1,4 @@
 #![feature(array_zip)]
-#![feature(once_cell)]
 
 mod piece;
 mod placement;

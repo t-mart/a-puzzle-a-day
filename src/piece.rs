@@ -1,4 +1,4 @@
-use colored::{ColoredString, Colorize};
+use colored::Colorize;
 use std::fmt;
 use std::ops::{Add, Index, IndexMut};
 
@@ -68,9 +68,9 @@ impl fmt::Display for Piece {
                         0 => OPEN_SQUARE_CHAR,
                         _ => FILLED_SQUARE_CHAR,
                     })
-                    .collect::<Vec<&str>>()
+                    .collect::<Vec<_>>()
                     .join(""))
-                .collect::<Vec<String>>()
+                .collect::<Vec<_>>()
                 .join("\n")
         )
     }
@@ -288,6 +288,7 @@ impl Piece {
     }
 }
 
+/// tries to print at most 8 pieces together
 pub fn print_solution(pieces: Vec<&Piece>) {
     let colors = [
         (31, 119, 180),  // blue
@@ -318,8 +319,10 @@ pub fn print_solution(pieces: Vec<&Piece>) {
                     .map(|(col_idx, item)| ((row_idx, col_idx), item))
                     .collect::<Vec<_>>()
             })
-            .filter(|(_, item)| item.eq(&1))
-            .map(|(coords, _)| coords)
+            .filter_map(|(coords, item)| match item {
+                1 => Some(coords),
+                _ => None,
+            })
             .collect::<Vec<_>>();
         for (row_idx, col_idx) in ons {
             board[row_idx][col_idx] = FILLED_SQUARE_CHAR.truecolor(r, g, b);
@@ -334,7 +337,7 @@ pub fn print_solution(pieces: Vec<&Piece>) {
                 .collect::<Vec<_>>()
                 .join("")
         })
-        .collect::<Vec<String>>()
+        .collect::<Vec<_>>()
         .join("\n");
 
     println!("{}\n", s);

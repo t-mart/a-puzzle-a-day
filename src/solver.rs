@@ -78,12 +78,6 @@ pub fn solve_threaded<'a>(open_square_labels_opt: Option<impl IntoIterator<Item 
     let mut callback = |pieces, _| {
         solution_count += 1;
         println!("found solution #{}", solution_count);
-        // print_solution(pieces.);
-        // println!("{}", board);
-        // for piece in pieces {
-        //     println!("{}", piece);
-        // }
-        // println!("\n");
         print_solution(pieces);
     };
 
