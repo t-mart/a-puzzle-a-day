@@ -1,4 +1,4 @@
-use crate::piece::{Piece, print_solution};
+use crate::piece::{print_solution, Piece};
 use crate::placement::get_placements;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -59,45 +59,58 @@ fn build_piece_placements() -> Vec<Vec<Piece>> {
 pub fn solve_threaded<'a>(open_square_labels_opt: Option<impl IntoIterator<Item = &'a str>>) {
     let starting_board = build_starting_board_with_opens(open_square_labels_opt);
 
-    let piece_placements = build_piece_placements();
+    let piece_placements = Arc::new(build_piece_placements());
 
     let mut partial_solutions = Vec::new();
     let mut partial_callback = |pieces, board| {
         partial_solutions.push((pieces, board));
     };
+    let partial_piece_placements = Arc::clone(&piece_placements);
+    // let partial_piece_placements = build_piece_placements();
 
     _solve(
         Vec::new(),
         starting_board,
-        &piece_placements,
+        &partial_piece_placements,
         &mut partial_callback,
-        Some(1)
+        Some(1),
     );
 
-    let mut solution_count = 0;
-    let mut callback = |pieces, _| {
-        solution_count += 1;
-        println!("found solution #{}", solution_count);
-        print_solution(pieces);
-    };
+    let mut threads = Vec::new();
 
     for (partial_pieces, partial_board) in partial_solutions {
-        _solve(
-            partial_pieces,
-            partial_board,
-            &piece_placements,
-            &mut callback,
-            None
-        );
+        let thread_piece_placements = Arc::clone(&piece_placements);
+        let mut partial_pieces3 = Vec::new();
+        for p in partial_pieces {
+            partial_pieces3.push(p);
+        }
+        let partial_board2 = partial_board.clone();
+        // let mut solution_count = 0;
+        let mut callback = |pieces, _| {
+            print_solution(pieces);
+        };
+        threads.push(thread::spawn(move || {
+            _solve(
+                partial_pieces3,
+                partial_board2,
+                &thread_piece_placements,
+                &mut callback,
+                None,
+            );
+        }));
+    }
+
+    for thread in threads {
+        thread.join().unwrap();
     }
 }
 
-fn _solve<'a>(
-    cur_board_pieces: Vec<&'a Piece>,
+fn _solve(
+    cur_board_pieces: Vec<Piece>,
     cur_board: Piece,
-    piece_placements: &'a [Vec<Piece>],
-    solution_callback: &mut impl FnMut(Vec<&'a Piece>, Piece) -> (),
-    stop_at: Option<usize>
+    piece_placements: &[Vec<Piece>],
+    solution_callback: &mut impl FnMut(Vec<Piece>, Piece) -> (),
+    stop_at: Option<usize>,
 ) {
     if cur_board_pieces.len() == stop_at.unwrap_or(piece_placements.len()) {
         solution_callback(cur_board_pieces, cur_board);
@@ -106,13 +119,13 @@ fn _solve<'a>(
             let new_board = cur_board + *placement;
             if new_board.is_flat() {
                 let mut new_board_pieces = cur_board_pieces.clone();
-                new_board_pieces.push(&placement);
+                new_board_pieces.push(*placement);
                 _solve(
                     new_board_pieces,
                     new_board,
                     piece_placements,
                     solution_callback,
-                    stop_at
+                    stop_at,
                 );
             }
         }

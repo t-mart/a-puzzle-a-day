@@ -299,7 +299,7 @@ impl Piece {
 }
 
 /// tries to print at most 8 pieces together
-pub fn print_solution(pieces: Vec<&Piece>) {
+pub fn print_solution(pieces: Vec<Piece>) {
     // build a board array of strings. real squares are white, others are hidden
     // (later, only the open squares of the solution will be white. everything
     // else will be overwritten)
