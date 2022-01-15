@@ -57,9 +57,9 @@ impl Add for Piece {
 
 impl fmt::Display for Piece {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
+        writeln!(
             f,
-            "{}\n",
+            "{}",
             self.data
                 .into_iter()
                 .map(|row| row
@@ -288,7 +288,7 @@ impl Piece {
                 }
             }
         }
-        return true;
+        true
     }
 }
 
@@ -315,7 +315,7 @@ impl<'a> fmt::Display for Solution<'a> {
             })
         });
 
-        for (piece, (r, g, b)) in self.0.into_iter().zip(COLORS) {
+        for (piece, (r, g, b)) in self.0.iter().zip(COLORS) {
             // update the board for each (piece, color) pair
             piece
                 .data
@@ -348,6 +348,6 @@ impl<'a> fmt::Display for Solution<'a> {
             .collect::<Vec<_>>()
             .join("\n");
 
-        write!(f, "{}\n", s)
+        writeln!(f, "{}", s)
     }
 }

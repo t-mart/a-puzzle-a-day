@@ -3,30 +3,28 @@ use crate::placement::get_placements;
 use rayon::prelude::*;
 use std::sync::{Arc, Mutex};
 
-fn build_starting_board_with_opens<'a>(
-    open_square_labels_opt: Option<impl IntoIterator<Item = &'a str>>,
-) -> Piece {
+pub fn solve<'a>(labels_opt: Option<impl Iterator<Item = &'a str>>) {
     let mut starting_board = Piece::starting_board();
-    if let Some(open_square_labels) = open_square_labels_opt {
-        for open_square_label in open_square_labels {
-            starting_board.mark_coord_for(open_square_label)
+    match labels_opt {
+        Some(labels) => {
+            let mut label_str_vec = vec![];
+            for label in labels {
+                starting_board.mark_coord_for(label);
+                label_str_vec.push(format!("\"{}\"", label));
+            }
+            println!(
+                "Solving for solutions with {} exposed...\n",
+                label_str_vec.join(" and ")
+            )
         }
+        None => println!("Solving for all solutions...\n"),
     }
-    starting_board
-}
 
-fn build_piece_placements() -> Vec<Vec<Piece>> {
-    Piece::playing_pieces()
+    let piece_placements = Piece::playing_pieces()
         .into_iter()
         .map(|piece| get_placements(&piece))
-        .collect()
-}
-
-pub fn solve_threaded<'a>(open_square_labels_opt: Option<impl IntoIterator<Item = &'a str>>) {
-    let starting_board = build_starting_board_with_opens(open_square_labels_opt);
-
-    let piece_placements = build_piece_placements();
-    let slices = &piece_placements
+        .collect::<Vec<_>>();
+    let piece_placement_slices = &piece_placements
         .iter()
         .map(|pieces| pieces.as_slice())
         .collect::<Vec<_>>();
@@ -41,7 +39,7 @@ pub fn solve_threaded<'a>(open_square_labels_opt: Option<impl IntoIterator<Item 
     _solve(
         Vec::new(),
         starting_board,
-        &slices,
+        piece_placement_slices,
         &mut partial_callback,
         Some(1),
     );
@@ -62,7 +60,7 @@ pub fn solve_threaded<'a>(open_square_labels_opt: Option<impl IntoIterator<Item 
             _solve(
                 partial_pieces.to_vec(),
                 *partial_board,
-                &slices,
+                piece_placement_slices,
                 &mut callback,
                 None,
             )
@@ -72,11 +70,11 @@ pub fn solve_threaded<'a>(open_square_labels_opt: Option<impl IntoIterator<Item 
     println!("{} solutions found", solutions_found_mutex.lock().unwrap());
 }
 
-fn _solve<'a>(
+fn _solve(
     cur_board_pieces: Vec<Piece>,
     cur_board: Piece,
     piece_placements: &[&[Piece]],
-    solution_callback: &mut impl FnMut(&[Piece], Piece) -> (),
+    solution_callback: &mut impl FnMut(&[Piece], Piece),
     stop_at: Option<usize>,
 ) {
     if cur_board_pieces.len() == stop_at.unwrap_or(piece_placements.len()) {

@@ -3,7 +3,7 @@
 version = 3
 
 [[package]]
-name = "a-puzzle-a-day-rust"
+name = "a-puzzle-a-day"
 version = "0.1.0"
 dependencies = [
  "clap",

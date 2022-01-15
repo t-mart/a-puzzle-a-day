@@ -6,7 +6,7 @@ mod solver;
 
 use clap::{App, Arg};
 use piece::Piece;
-use solver::solve_threaded;
+use solver::solve;
 
 const OPEN_LABEL: &str = "OPEN_LABEL";
 
@@ -15,7 +15,7 @@ fn main() {
         .about(
             "Generates solutions for A-Puzzle-A-Day, a combination puzzle \
             with the goal of arranging 8 tiles on a board such that a particular \
-            date on the board is left exposed.",
+            date (2 squares) on the board is left exposed.",
         )
         .arg(
             Arg::new(OPEN_LABEL)
@@ -31,5 +31,5 @@ fn main() {
         )
         .get_matches();
 
-    solve_threaded(matches.values_of(OPEN_LABEL));
+    solve(matches.values_of(OPEN_LABEL));
 }
