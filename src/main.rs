@@ -12,7 +12,11 @@ const OPEN_LABEL: &str = "OPEN_LABEL";
 
 fn main() {
     let matches = App::new("A-Puzzle-A-Day Solver")
-        .about("Generates solutions for A-Puzzle-A-Day, a wooden combination puzzle")
+        .about(
+            "Generates solutions for A-Puzzle-A-Day, a combination puzzle \
+            with the goal of arranging 8 tiles on a board such that a particular \
+            date on the board is left exposed.",
+        )
         .arg(
             Arg::new(OPEN_LABEL)
                 .takes_value(true)

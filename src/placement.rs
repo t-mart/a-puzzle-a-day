@@ -1,4 +1,4 @@
-use crate::piece::{Piece, PIECE_SIZE};
+use crate::piece::Piece;
 
 use std::collections::HashSet;
 
@@ -33,8 +33,10 @@ pub fn get_orientations(piece: &Piece) -> Vec<Piece> {
 /// without rotations or flips
 pub fn get_shifts(piece: &Piece) -> Vec<Piece> {
     let mut placements = Vec::new();
-    let mut first_clear_col = PIECE_SIZE - 1;
-    let mut first_clear_row = PIECE_SIZE - 1;
+    let row_count = piece.len();
+    let col_count = piece[0].len();
+    let mut first_clear_row = row_count - 1;
+    let mut first_clear_col = col_count - 1;
     let mut tmp_row_offsetted = *piece;
 
     while piece.col(first_clear_col).iter().sum::<u8>() == 0 {
@@ -45,9 +47,9 @@ pub fn get_shifts(piece: &Piece) -> Vec<Piece> {
         first_clear_row -= 1;
     }
 
-    for _ in 0..(PIECE_SIZE - first_clear_row) {
+    for _ in 0..(row_count - first_clear_row) {
         let mut tmp_col_offsetted = tmp_row_offsetted;
-        for _ in 0..(PIECE_SIZE - first_clear_col) {
+        for _ in 0..(col_count - first_clear_col) {
             placements.push(tmp_col_offsetted);
             tmp_col_offsetted.roll_right();
         }
