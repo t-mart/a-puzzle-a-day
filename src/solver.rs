@@ -55,7 +55,8 @@ pub fn solve_threaded<'a>(open_square_labels_opt: Option<impl IntoIterator<Item 
             let mut callback = move |pieces: &[Piece], _| {
                 let mut solutions_found = thread_solutions_found_mutex.lock().unwrap();
                 *solutions_found += 1;
-                println!("{}\n{}", *solutions_found, Solution(pieces));
+                let solution = Solution(pieces);
+                println!("#{}\n{}", *solutions_found, solution);
             };
 
             _solve(
@@ -66,7 +67,7 @@ pub fn solve_threaded<'a>(open_square_labels_opt: Option<impl IntoIterator<Item 
                 None,
             )
         })
-        .for_each(|()| {}); // rayon won't start the work until there's something that consumes it.
+        .for_each(drop); // exhaust the iterator so that the work is actually dont
 
     println!("{} solutions found", solutions_found_mutex.lock().unwrap());
 }

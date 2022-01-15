@@ -1,5 +1,4 @@
 use colored::Colorize;
-use std::collections::BinaryHeap;
 use std::fmt;
 use std::ops::{Add, Index, IndexMut};
 
@@ -291,39 +290,6 @@ impl Piece {
         }
         return true;
     }
-
-    // encode this piece into a number. NOTE: all square values
-    // will be clamped to [0, 1].
-    pub fn encode(&self) -> u64 {
-        let mut val = 0u64;
-        for row in self.data {
-            for item in row {
-                val <<= 1;
-                match item {
-                    0 => {}
-                    _ => val += 1u64,
-                }
-            }
-        }
-        val
-    }
-}
-
-
-/// generates an reproducible identifier for a solution
-/// e.g.: 1c30000000000-387000000000-708100000-6083000-f1000000-604180-78200-c70
-///
-/// TODO: this looks awful. come up with better idea
-/// TODO: this could be some trait
-pub fn encode_solution(pieces: &Vec<Piece>) -> String {
-    pieces
-        .iter()
-        .map(|piece| piece.encode())
-        .collect::<BinaryHeap<_>>()
-        .into_iter()
-        .map(|code| format!("{:x}", code))
-        .collect::<Vec<_>>()
-        .join("-")
 }
 
 pub struct Solution<'a>(pub &'a [Piece]);
